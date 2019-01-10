@@ -1,0 +1,2 @@
+pipe0 -> from Pipeline select Pipeline Script
+pipe1 and above use git and scm

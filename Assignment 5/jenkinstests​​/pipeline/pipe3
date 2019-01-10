@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+
+    parameters {
+         string(name: 'dev-server', defaultValue: '35.166.210.154', description: 'Staging Server')
+         string(name: 'prd-server', defaultValue: '34.209.233.6', description: 'Production Server')
+    }
+
+    triggers {
+         pollSCM('* * * * *')
+     }
+
+    stages{
+        stage('Build'){
+            steps {
+                sh '/bin/python test.py'
+            }
+            post {
+                success {
+                    echo 'Now Archiving...'
+                    archiveArtifacts artifacts: '**/*'
+                }
+            }
+        }
+        stage ('Deploy to staging') {
+            steps {
+                sh "cp -r * /var/www/html/"
+            }
+        }
+    }
+}

@@ -1,0 +1,64 @@
+Description: >-
+  Deploys Launch Configuration for bootstrapped Linux instances
+Parameters:
+
+  UserName:
+    Type: String
+    Default: stakes
+
+  UserPublicSSHKey:
+    Type: String
+    Default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdyS33YJTooUWC6VdcM7AOSPAGRCuIaXFsP7EL336NYLDBpXJ6nuWXwdmfA7YeniaX8jxKr88XqqDmP5JL1iSqMElmE8JwOvJWJkNRKLrmjXRKwEqC9eCq5X7LeKV7sYlIQgvpyvu+E8UP3SpIlnjzHIeenv3nQVyc+AdHG0QgXEWQ1d9toOHfrGvTTtH0iO32OqItah7sWmrcL97f6NVlG+sf1Ll9ekwAxA2vGe+h1BfBJ8/H+yM6xN4KVq0Dco7kwbrlIDLXSdMpTpzILyfJRiGi7eMB3qO5qrTLO2Nt1wPXCWQzgTG8Ee8cMlAliBN5r+6HRCXEIg60PbmRtC2r stakes@CSCI91
+
+  AnsiblePublicSSHKey:
+    Type: String
+    Default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC1fXnvJlDNDmAqC/7WMy2Id2N9dh8GvrQTgJql23YyrLgvHwXQczNE+01lkdtU8ipfE6GxHTIG3otxIoqLBxMBMETUyLZWBOIgUyKDIwmEflhXMe3ZJiYayUkHGN/Ra0W4MgxOpWO1V7HFXrrsJ6lODurWBqD3HSm5erxz1r2Rp73ov+4RwWiySEwKaUWi86P/zhMZjEBH0Et0gEOv7gFu1p+edte/XfsGbRnRu+ja62VUHXDsYol8oq805vqNBBZqtIfeGYFFKuSqDkE7PzDixrJuK79s7dB6Ys2aCm4DSSXXY5StG1/77YZvRsYO6QcCcn08ne+31lHdlQr5Q/+r stakes@CSCI91
+
+  SecurityGroup:
+    Description: Select the Security Groups
+    Type: AWS::EC2::SecurityGroup::Id
+
+  AMI:
+    Description: AMI to create the EC2
+    Type: String
+    Default: ami-058f0b6d904c90419
+
+Resources:
+  LaunchConfig:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      #AssociatePublicIpAddress: False
+      #KeyName: FarasKey
+      LaunchConfigurationName : !Ref AWS::StackName
+      ImageId: !Ref AMI
+      SecurityGroups:
+        - !Ref SecurityGroup
+      InstanceType: t2.micro
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              yum update -y
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${USERPUBLICSSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              mkdir -p /root/.ssh
+              echo ${ANSIBLEPUBLICSSHKEY} > /root/.ssh/authorized_keys
+              chmod 600 /root/.ssh/authorized_keys
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --pretty
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --static
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --transient
+            - USERNAME: !Ref UserName
+              USERPUBLICSSHKEY: !Ref UserPublicSSHKey
+              ANSIBLEPUBLICSSHKEY: !Ref AnsiblePublicSSHKey
+              SERVERNAME: !Sub ${AWS::StackName}
+
+Outputs:
+
+  LG:
+    Value: !Ref LaunchConfig

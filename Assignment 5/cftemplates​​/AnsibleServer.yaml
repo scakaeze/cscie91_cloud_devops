@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Template EC2InstanceWithSecurityGroup: Create an Amazon EC2
+  instance running SEAS CentOS AMI on the us-east region. This template creates an EC2
+  instance that uses an already created security groups. It also uses user-data to configure
+  the instance as ansible server.
+Parameters:
+  UserName:
+    Type: String
+    Default: stakes
+  SSHPublicKey:
+    Type: String
+    Default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDdyS33YJTooUWC6VdcM7AOSPAGRCuIaXFsP7EL336NYLDBpXJ6nuWXwdmfA7YeniaX8jxKr88XqqDmP5JL1iSqMElmE8JwOvJWJkNRKLrmjXRKwEqC9eCq5X7LeKV7sYlIQgvpyvu+E8UP3SpIlnjzHIeenv3nQVyc+AdHG0QgXEWQ1d9toOHfrGvTTtH0iO32OqItah7sWmrcL97f6NVlG+sf1Ll9ekwAxA2vGe+h1BfBJ8/H+yM6xN4KVq0Dco7kwbrlIDLXSdMpTpzILyfJRiGi7eMB3qO5qrTLO2Nt1wPXCWQzgTG8Ee8cMlAliBN5r+6HRCXEIg60PbmRtC2r stakes@CSCI91
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    ConstraintDescription: must be a valid EC2 instance type.
+  AMI:
+    Description: AMI to create the EC2
+    Type: String
+    Default: ami-058f0b6d904c90419
+  Subnet:
+    Description: Subnet to host the EC2
+    Type: 'AWS::EC2::Subnet::Id'
+    ConstraintDescription: subnet where this machine reside
+  Expiration:
+    Description: Time to terminate or re-evaluate the machine
+    Type: String
+    Default: 'Jan 1st 2020'
+  SecurityGroup:
+    Description: Name of security group
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+Resources:
+  NetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    Properties:
+      SubnetId: !Ref Subnet
+      GroupSet: !Ref SecurityGroup
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref NetworkInterface
+          DeviceIndex: '0'
+      ImageId: !Ref AMI
+      Tags:
+        -
+          Key: Name
+          Value: !Sub ${AWS::StackName}
+        -
+          Key: OS
+          Value: !Ref Expiration
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              yum update -y
+              yum install -y git
+              yum install -y ansible
+              #/usr/bin/amazon-linux-extras install ansible2
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --pretty
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --static
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --transient
+              mkdir -p /root/.ssh
+              cat > /root/.ssh/id_rsa << EOF
+              -----BEGIN RSA PRIVATE KEY-----
+		MIIEowIBAAKCAQEAtX157yZQzQ5gKgv+1jMtiHdjfXYfBr60E4Capdt2Mqy4Lx8F
+		0HMzRPtNZZHbVPIqXxOhsR0yBt6LcSKKiwcTATBE1Mi2VgTiIFMigyMJhH5YVzHt
+		2SYmGslJBxjf0WtFuDIMTqVjtVexxV667CepTg7q1gag9x0puXq8c9a9kae96L/u
+		EcFoskhMCmlFovOj/84TGYxAR9BLdIBDr+4BbtafnnbXv137Bm0Z0bvo2utlVB1w
+		7GKJfKKvNOb6jQQWarSH3hmBRSrkqg5BOz8w4saybiu/bO3QemLNmgpuA0kl12OU
+		rRtf++2Gb0bGDukHAnJ9PJ3vt9ZR3ZUK+UP/qwIDAQABAoIBAGpDQXWI1Z56YEu+
+		IkOAS5Svco0u8BOe7QjOL74UtSwOfPj6DQlzqf0ltrdVozolYDGy6OUu1u+2taZU
+		NxIX3kS/4k1EB55t1YhfpMFrblMpNsg277BI6d6dJCkHo2SWjoe+pf4WUD8JTYjm
+		YkOLJVIS4eTWlMCbTqbO+jBI902kENVXnwQBYV0i0zdt2ST0Cg21ISGRVF6xhBoH
+		KqoTjEsgJDIJdaMzlO7XRhct0bmZhzOP2agzH2GiLhrd90FCu4sUEbLPenMqLNrs
+		J5VPA+GES+SG5LjOcFcjL87yMXoMlA6DllBWACGqyhCBZaB0NgdNUMLykFXmu+mz
+		d2/lKMECgYEA23wHsnE21METPf6TZO534jNcUanDleHSueR8hW7JKd2J9Dxbm3M9
+		jobgQhr7wTRXPSFejC1vj8V95gjp+ypg8PFgam0bz2XB/xzb0JCuubToCh8a3mWm
+		NaI6nSDLVGTExdNlyH5Pi0/+4LY9fYOGpW0cyIRWCYtOXl8iM1a88FkCgYEA068+
+		wVqRUgK9IASEMA0FJNG0/Fd01OHvWlodEE5WurO4wLe0VgS02eUrZ8ahI7tRn4gD
+		oP1PNJtMtcOXeCv/XkbQd5g2NSaaqoqMYd9VBxE1KhrLwO1R2D0WSjz50fBL3dHu
+		O+sJvUv54k4U9SonjGQhRGxBr5/ZF2/vfFG3z6MCgYA1WLMiOwRBt9/ubIb0vEVl
+		NGiW7LU+I9ItHozpfaDlTRRvyY/We68VilDNoHNaZVdi405wscZw4maUV8xPIODJ
+		D1II7BYbVbdOQ3xl+BSPzJmthBvqvDgmxxSKBmOFUqzFDHmrvo+k47+mbIULkcFT
+		Se76CbhDv5k/tM3CPq3TmQKBgHLkIJltAIaUefWQvfYeevY645I6HW0Vm4Vcd33M
+		JwJ6XQIsMrKlJ0tEOMTAZ+Eu3+RIPD/6fCy/RWk52VId/yI6KRdgA7vhUfzR6dON
+		FWcajdJmbMQvikZlEV4FrkmltGeWc0kODmExhVSwsGtID+MAzZWHdDdP+NHhrQe6
+		ipslAoGBAJClJYXqxSA7wGbO+W3NhqCxeZj/+t4FyJntZWBTBnPkhm37sIEB+dhG
+		P9gdp4NGmhPNu5BQK6UGRMSw2iG6uKWB1wz9AlLMp0/y+vSJDdbpmrnjrskL6vnz
+		5r/P4ZPsup30zKIUzmeIS/Qh/lRAqjKczx8o1GxPXS287Zi2FFHM
+		-----END RSA PRIVATE KEY-----
+              EOF
+              chmod 700 /root/.ssh
+              chmod 600 /root/.ssh/id_rsa
+              ssh-keyscan code.harvard.edu 2>&1  | grep rsa >> /root/.ssh/known_hosts
+              rm -fr /root/cscie91
+              /bin/git git@code.harvard.edu:sta283/csci-91-sta283_asignment5.git /root/cscie91
+              /bin/rm -fr /etc/ansible/*
+              /bin/cp -r /root/cscie91/ansible/* /etc/ansible/
+              #ansible-playbook /etc/ansible/jenkins.yml
+            - USERNAME: !Ref UserName
+              SSHKEY: !Ref SSHPublicKey
+              SERVERNAME: !Sub ${AWS::StackName}
+
+Outputs:
+  InstanceId:
+    Description: InstanceId of the newly created EC2 instance
+    Value: !Ref EC2Instance
+  privateIP:
+    Value: !GetAtt NetworkInterface.PrimaryPrivateIpAddress

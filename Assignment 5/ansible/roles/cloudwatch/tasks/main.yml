@@ -1,0 +1,91 @@
+---
+
+#- name: add cloudwatch repo
+#  yum_repository:
+#    name: cloudwatch
+#    description: Repository for cloudwatch installation
+#    baseurl: http://
+#    gpgkey: http://
+
+# Update all packages on system
+- name: yum update
+  yum:
+    name: "*"
+    state: latest
+  register: yum_result
+  retries: 5
+  delay: 20
+  until: >
+     'rc' in yum_result and
+     yum_result.rc == 0
+
+# Reboot if any updates are installed.
+- include_tasks: server_reboot.yml
+  when: yum_result.changed
+
+- name: install epel
+  yum:
+    name:
+      - epel-release
+    state: present
+    update_cache: true
+
+# ensure that needed utilities are installed
+- name: install utilities
+  yum:
+    name:
+      - curl
+      - git
+      - nginx
+      - python-pip
+      - vim
+    state: present
+    update_cache: true
+
+# Install awscli
+- name: install awscli
+  pip:
+    name: awscli
+
+# make sure that cloudwatch home directory exists
+- name: create cloudwatch_home
+  file:
+    path: "{{cloudwatch_home}}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+# Copy configuration file
+- name: copy some cloudwatch files
+  copy:
+    src: cloudwatch.conf
+    dest: "{{cloudwatch_home}}"
+    owner: root
+    group: root
+    mode: 0444
+
+# copy templates
+- name: copy cloudwatchi config
+  template:
+    src: "cloudwatch_config.j2"
+    dest: "{{cloudwatch_home}}"
+    owner: root
+    group: root
+    mode: 0600
+  register: cloudwatch_config_file
+
+# start and enable aws cloudwatch
+#- name: start cloudwatch service
+#  service:
+#    name: cloudwatch
+#    state: started
+#    enabled: yes
+#  register: cloudwatch_started
+
+# Restart the cloudwatch service if the config changes while it's already running
+#- name: restart cloudwatch
+#  service:
+#    name: cloudwatch
+#    state: restarted
+#  when: cloudwatch_config_file.changed and not cloudwatch_started.changed

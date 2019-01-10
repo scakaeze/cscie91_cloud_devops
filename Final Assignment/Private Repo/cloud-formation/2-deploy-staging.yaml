@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: 
+    Creates an EC2 instance for staging.
+
+Parameters:
+    
+
+    UserName:
+        Type: String
+        Default: group1
+
+    SSHPublicKey:
+      Type: String
+      Default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC6iUaH51orMeOPlfTuFFUIHploXWIl3PwLuJNo1mETYwW1rWrnsuYEvYTCy4bN9183QDRxyGY09lXUJdupOPoVpS5uCoPLGFKmT0QMy6tR84lCvFgdLtdwTCZN7ZBiwM8iuTQj2EOp0/G88w80erFYnaXM8hKrSPv99y6B5hR85SDTgjC2252HaMk5lVRIHI+YglH5kSrTHW7z1AcgQLmaGC7wLbMl6ZvnMAc2bm5ACCnL0Ii4aK0E8LZ6J7ni8RbX0ZFFcb0OwKBoYd4Rjtcpvf8JBrUNSHego3T+H3yOxXqCg+FvtMBPjIbXu7VWduwoRY1T0tl1KRiOrz2JbVi7
+
+    AvailabilityZone1:
+        Description: AWS Availability Zones
+        Type: AWS::EC2::AvailabilityZone::Name
+        Default: us-east-1c
+    
+      
+    InstanceType:
+      Description: EC2 instance type
+      Type: String
+      Default: t2.micro
+      AllowedValues:
+        - t2.micro
+        - t2.small
+        - t2.medium
+      ConstraintDescription: must be a valid EC2 instance type.
+
+    AMI:
+      Description: AMI to create the EC2, you can use amazon ami
+      Type: String
+      Default: ami-058f0b6d904c90419
+
+Resources:
+  
+    EC2InstanceStagingEC2:
+      Type: 'AWS::EC2::Instance'
+      Properties:
+        ImageId: !Ref AMI
+        InstanceType: !Ref InstanceType
+        SubnetId: subnet-07fb8ab98f31d8fdb
+        SecurityGroupIds: 
+          -
+            sg-04604303cb47d1020
+
+        Tags:
+          - 
+            Key: Name
+            Value: 'Staging'
+        UserData:
+          Fn::Base64:
+            Fn::Sub:
+              - |
+                #!/bin/bash -xe
+                yum update -y
+                adduser ${USERNAME}
+                echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+                mkdir /home/${USERNAME}/.ssh
+                echo ${USERPUBLICSSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+                chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+                chmod 700 /home/${USERNAME}/.ssh
+                chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+                mkdir -p /root/.ssh
+                echo ${ANSIBLEPUBLICSSHKEY} > /root/.ssh/authorized_keys
+                chmod 600 /root/.ssh/authorized_keys
+                hostnamectl set-hostname ${SERVERNAME}.harvard.edu --pretty
+                hostnamectl set-hostname ${SERVERNAME}.harvard.edu --static
+                hostnamectl set-hostname ${SERVERNAME}.harvard.edu --transient
+                yum install unzip -y
+                yum install python -y
+                curl "https://s3.amazonaws.com/aws-cli/awscli-bundle.zip" -o "awscli-bundle.zip"
+                unzip awscli-bundle.zip
+                ./awscli-bundle/install -b ~/bin/aws
+
+                public_ipv4=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4/)
+                echo $public_ipv4 >> /var/stagingip
+                export AWS_CONFIG_FILE="/root/.aws/config" #change it as per user
+                export AWS_ACCESS_KEY_ID=AKIAIEA36E5DQEZGGCHA
+                export AWS_SECRET_ACCESS_KEY=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
+                /root/bin/aws s3 cp /var/stagingip s3://e91-cloudtrail/AWSLogs/531997612114/CloudTrail/test/ --acl=public-read --debug
+                yum install git -y
+                yum install docker -y
+                systemctl enable docker
+                systemctl start docker
+                mkdir /tmp/build-docker-image && cd /tmp/build-docker-image
+                git clone -b staging https://github.com/cwmat/csci-91-final-phase1-public.git
+                curl -O https://s3.amazonaws.com/final-e91/Dockerfilecentos
+                mv  /tmp/build-docker-image/Dockerfilecentos  /tmp/build-docker-image/Dockerfile
+                docker build -t centosapache .
+                docker run --name stage -d -p 80:80 centosapache
+              - USERNAME: !Ref UserName
+                USERPUBLICSSHKEY: !Ref SSHPublicKey
+                ANSIBLEPUBLICSSHKEY: !Ref SSHPublicKey
+                SERVERNAME: 'Staging'
+
+                
+    
+Outputs:
+
+
+    InstanceIdDev:
+      Description: InstanceId of the dev instance
+      Value: !Ref EC2InstanceStagingEC2
+
+

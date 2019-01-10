@@ -1,0 +1,12 @@
+---
+- hosts: jenkins
+  become: yes
+  become_user: root
+  vars:
+     jenkins_home: /opt/jenkins
+     jenkins_port: 8080
+     jenkins_host: jenkins.harvard.edu
+     ssl_cert: jenkins.cert
+     ssl_key: jenkins.key
+  roles:
+     - jenkins

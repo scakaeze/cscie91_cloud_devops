@@ -1,0 +1,47 @@
+pipeline {
+    agent any
+    
+    triggers {
+         pollSCM('* * * * *')
+     }
+    
+    stages{
+        stage('Build'){
+            steps {
+                sh '/bin/python tests/testMltpy.py'
+            }
+            post {
+                success {
+                    echo 'Now Archiving...'
+                    archiveArtifacts artifacts: '**/*'
+                }
+            }
+        }
+        
+        stage ('Deploy to staging') {
+            steps {
+                sh "cp -r * /usr/share/nginx/html/dev/"
+            }
+        }
+        
+        stage('Deploy to production ') {
+            steps{
+                timeout(time:2, unit:'DAYS'){
+                    input message:'Managet to Approve The Deployment?'
+                }
+
+                sh "cp -r * /usr/share/nginx/html/"
+            }
+            post {
+                success {
+                    echo 'Code deployed to Production.'
+                }
+
+                failure {
+                    echo ' Deployment failed.'
+                }
+            }
+        }
+    }
+}
+

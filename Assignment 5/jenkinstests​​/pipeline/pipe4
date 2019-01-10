@@ -1,0 +1,34 @@
+pipeline {
+    agent any
+    
+    triggers {
+         pollSCM('* * * * *')
+     }
+    
+    stages{
+        stage('Build'){
+            steps {
+                sh '/bin/python tests/testMltpy.py'
+            }
+            post {
+                success {
+                    echo 'Now Archiving...'
+                    archiveArtifacts artifacts: '**/*'
+                }
+            }
+        }
+        
+        stage ('Deploy to staging') {
+            steps {
+                sh "cp -r * /usr/share/nginx/html/dev/"
+            }
+        }
+        
+        stage('Deploy to production ') {
+            steps {
+                echo 'Deploying....'
+            }
+        }
+    }
+}
+

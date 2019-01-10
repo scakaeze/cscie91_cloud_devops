@@ -1,0 +1,9 @@
+---
+- hosts: all
+  become: yes
+  become_user: root
+  vars:
+     cloudwatch_home: /var/lib/cloudwatch
+     cloudwatch_host: cloudwatch.harvard.edu
+  roles:
+     - cloudwatch

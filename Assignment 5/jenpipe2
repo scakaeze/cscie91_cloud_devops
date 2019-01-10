@@ -1,0 +1,37 @@
+pipeline {
+    agent any
+
+    triggers {
+         pollSCM('* * * * *')
+     }
+
+    stages{
+	stage('Deploying dev'){
+            steps {
+                sh '/bin/python ./test-dev.py'
+            }
+        }
+
+	stage ('Deploying stage') {
+            steps {
+		timeout(time:2, unit:'DAYS'){ 
+                    input message:'Do you want to approve staging'
+                }
+		
+                sh "/bin/python ./test-stage.py"
+            }
+        }
+
+	stage ('Deploying prod') {
+            steps {
+                timeout(time:2, unit:'DAYS'){
+                    input message:'Do you want to approve production'
+                }
+
+                sh "curl -s -I http://100.26.176.212/ | grep HTTP | grep 200"
+            }
+        }
+
+    }
+}
+

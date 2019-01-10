@@ -1,0 +1,13 @@
+# ping
+ansible all -m ping
+
+# Run 
+ansible-playbook 4-apache.yml
+
+#Specify host
+ansible-playbook -i 1-hosts 7-apache.yml
+
+# Specify hosts and group
+ansible-playbook -i 1-hosts -l httpd 7-apache.yml
+
+

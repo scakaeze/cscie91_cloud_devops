@@ -1,0 +1,33 @@
+Description: >-
+  Deploys Auto Scaling
+  
+Parameters:
+
+  ARNTargetGroup:
+    Description: ARN of an existing target group
+    Type: String
+
+  LaunchConfigName:
+    Description: Launch configuration name
+    Type: String
+
+  Subnets:
+    Description: Choose which subnets the Application Load Balancer should be deployed to
+    Type: List<AWS::EC2::Subnet::Id>
+
+
+Resources:
+  ec2testas:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AutoScalingGroupName: !Ref AWS::StackName
+      DesiredCapacity: '3'
+      MinSize: '3'
+      MaxSize: '6'
+      LaunchConfigurationName: !Ref  LaunchConfigName
+      VPCZoneIdentifier: !Ref Subnets
+      HealthCheckType: 'ELB'
+      TargetGroupARNs: [ !Ref ARNTargetGroup]
+      HealthCheckGracePeriod : 300
+
+     # LoadBalancerNames: "ec2-test-alb"

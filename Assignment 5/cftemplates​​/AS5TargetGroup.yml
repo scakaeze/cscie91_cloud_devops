@@ -1,0 +1,35 @@
+Description: >-
+  Deploys an a Target group for Application Load Balancer
+Parameters:
+  VPC:
+    Type: AWS::EC2::VPC::Id
+    Description: Choose which VPC the Security Groups will be created.
+  TargetType:
+    Description: Instance or IP
+    Type: String
+    Default: instance
+    AllowedValues:
+      - instance
+      - ip
+
+Resources:
+  targetgroups:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 10
+      HealthCheckPath: '/'
+      HealthCheckPort: 'traffic-port'
+      HealthCheckProtocol: 'HTTP'
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 5
+      Name: !Sub ${AWS::StackName}
+      Port: 80
+      Protocol: 'HTTP'
+      TargetType: !Ref TargetType
+      UnhealthyThresholdCount: 3
+      VpcId: !Ref VPC
+
+
+Outputs:
+  TG:
+    Value: !Ref targetgroups

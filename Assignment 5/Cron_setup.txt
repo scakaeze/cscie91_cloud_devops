@@ -1,0 +1,23 @@
+--------------------TO INITILIAZE CRON JOB(S) AS ROOT
+
+echo "*/5 * * * * root sleep 60 && cd /root/csci-91-sta283_asignment5/ && git checkout dev && git pull -q origin dev && rm -r -f /etc/ansible/* && cp -r /root/csci-91-sta283_asignment5/ansible/* /etc/ansible && ansible-playbook -l dev /etc/ansible/apache.yml" > /etc/cron.d/ansible-pull-dev
+
+echo "*/5 * * * * root sleep 120 && cd /root/csci-91-sta283_asignment5/ && git checkout stage && git pull -q origin stage && rm -r -f /etc/ansible/* && cp -r /root/csci-91-sta283_asignment5/ansible/* /etc/ansible && ansible-playbook -l stage /etc/ansible/apache.yml" > /etc/cron.d/ansible-pull-stage
+
+echo "*/5 * * * * root sleep 180 && cd /root/csci-91-sta283_asignment5/ && git checkout master && git pull -q origin master && rm -r -f /etc/ansible/* && cp -r /root/csci-91-sta283_asignment5/ansible/* /etc/ansible && ansible-playbook -l prod /etc/ansible/apache.yml" > /etc/cron.d/ansible-pull-prod
+
+
+systemctl restart crond
+
+
+--------------------TO CANCEL CRON JOB(S) AS ROOT
+
+rm -r -f /etc/cron.d/ansible-pull-dev
+rm -r -f /etc/cron.d/ansible-pull-stage
+rm -r -f /etc/cron.d/ansible-pull-prod
+
+systemctl restart crond
+
+
+--------------------TO VIEW CRON JOB(S) UPDATES
+cat /var/log/cron

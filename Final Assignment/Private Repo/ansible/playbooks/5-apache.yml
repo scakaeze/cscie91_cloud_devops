@@ -1,0 +1,21 @@
+---
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    - name: install apache and php
+      yum:
+        name:
+          - httpd
+          - php
+        state: present
+    - name: ensure apache is started
+      service: name=httpd state=started enabled=yes
+    - name: copy files to document root
+      copy: src=index.html dest=/var/www/html/
+      notify:
+        - restart apache
+  handlers:
+    - name: restart apache
+      service: name=httpd state=started
+

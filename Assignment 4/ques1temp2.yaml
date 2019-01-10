@@ -1,0 +1,185 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >-
+  Create three EC2s  with multiple input parameters in two public subnets.
+
+Parameters:
+
+  UserName:
+    Type: String
+    Default: stakes
+
+  SSHPublicKey:
+    Type: String
+    Default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDNYU79UnTp45+15TSo87MYZxipa5CT84dT8NuuN7W5tdduKxPnrDtCztOYtzzbpYZrfBYPqnEy86T3KqqmLfYmz8adG8T/zqWz8U2EjZZNATRwCxTjUktkJ/DIFWYPVA6mZKqQkM5+7eNGhd+yg8uPq7iBokRrDDVzlgUlBO3qwGVE2frekUZ3Rtu+FEDIVL+VBQuLPOHVrYN8+6ikpwt8dsIfXaYParlHGDb46ZJgY4WHOKsjqjiOG27yacWqTsG2XZYwEtHWfpAxJ1QqsfssrKACUJC3oVav3RLGNvtNfVZ2hWZOSN8DO9knD4fp3otoVxNegTxuL25JNGa+B0/f sta283@g.harvard.edu
+
+  SecurityGroup:
+    Description: Name of security group
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    ConstraintDescription: must be a valid EC2 instance type.
+
+  AMI:
+    Description: AMI to create the EC2
+    Type: String
+    Default: ami-0bdb828fd58c52235
+
+Resources:
+
+  NetworkInterface1:
+      Type: 'AWS::EC2::NetworkInterface'
+      Properties:
+        SubnetId: !ImportValue
+          'Fn::Sub': E91PublicSub1
+        GroupSet:
+          - !ImportValue
+            'Fn::Sub': E91SecGrp
+
+  NetworkInterface2:
+      Type: 'AWS::EC2::NetworkInterface'
+      Properties:
+        SubnetId: !ImportValue
+          'Fn::Sub': E91PublicSub2
+        GroupSet:
+          - !ImportValue
+            'Fn::Sub': E91SecGrp
+
+  NetworkInterface3:
+      Type: 'AWS::EC2::NetworkInterface'
+      Properties:
+        SubnetId: !ImportValue
+          'Fn::Sub': E91PublicSub2
+        GroupSet:
+          - !ImportValue
+            'Fn::Sub': E91SecGrp
+
+  EC2Instance1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref NetworkInterface1
+          DeviceIndex: '0'
+      Tags:
+        -
+          Key: Name
+          Value: 'My First EC2'
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              sudo yum update -y
+              sudo yum install httpd -y
+              sudo chmod  o+w /var/www/html
+              echo "Assignment 4: Public Web Server" > /var/www/html/index.html
+              local_ipv4=$(ifconfig | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
+              echo My Local IP is $local_ipv4 >> /var/www/html/index.html
+              sudo service httpd start
+              hostnamectl set-hostname  mystack1.harvard.edu --pretty
+              hostnamectl set-hostname  mystack1.harvard.edu --static
+            - USERNAME: !Ref UserName
+              SSHKEY: !Ref SSHPublicKey
+
+
+
+  EC2Instance2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref NetworkInterface2
+          DeviceIndex: '0'
+      Tags:
+        -
+          Key: Name
+          Value: 'My Second EC2'
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              sudo yum update -y
+              sudo yum install httpd -y
+              sudo chmod  o+w /var/www/html
+              echo "Assignment 4: Public Web Server" > /var/www/html/index.html
+              local_ipv4=$(ifconfig | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
+              echo My Local IP is $local_ipv4 >> /var/www/html/index.html
+              sudo service httpd start
+              hostnamectl set-hostname  mystack1.harvard.edu --pretty
+              hostnamectl set-hostname  mystack1.harvard.edu --static
+            - USERNAME: !Ref UserName
+              SSHKEY: !Ref SSHPublicKey
+
+
+  EC2Instance3:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref NetworkInterface3
+          DeviceIndex: '0'
+      Tags:
+        -
+          Key: Name
+          Value: 'My Third EC2'
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              sudo yum update -y
+              sudo yum install httpd -y
+              sudo chmod  o+w /var/www/html
+              echo "Assignment 4: Public Web Server" > /var/www/html/index.html
+              local_ipv4=$(ifconfig | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
+              echo My Local IP is $local_ipv4 >> /var/www/html/index.html
+              sudo service httpd start
+              hostnamectl set-hostname  mystack1.harvard.edu --pretty
+              hostnamectl set-hostname  mystack1.harvard.edu --static
+            - USERNAME: !Ref UserName
+              SSHKEY: !Ref SSHPublicKey
+
+
+Outputs:
+  InstanceId1:
+    Description: InstanceId of the first instance
+    Value: !Ref EC2Instance1
+  InstanceId2:
+    Description: InstanceId of the second instance
+    Value: !Ref EC2Instance2
+  InstanceId3:
+    Description: InstanceId of the second instance
+    Value: !Ref EC2Instance3

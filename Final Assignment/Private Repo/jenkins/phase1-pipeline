@@ -1,0 +1,96 @@
+timestamps {
+
+timeout(25) {
+node () {
+
+	stage ('create dev - Build') {
+ 			// Shell build step
+            build job: 'create dev'
+sh """ 
+echo "Testing CFT"
+ """ 
+	}
+    stage ('create stage - Build') {
+ 			// Shell build step
+            build job: 'create stage'
+sh """ 
+echo "Testing CFT"
+ """ 
+	}
+
+
+    stage ('sleep cft - Build') {
+ 			// Shell build step
+sh """ 
+echo "Waiting 1 min"
+sleep 480s
+echo "Wait complete." 
+ """ 
+	}
+	stage ('Build - Checkout') {
+ 	 checkout([$class: 'GitSCM', branches: [[name: '*/dev']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'https://github.com/cwmat/csci-91-final-phase1-public']]]) 
+	}
+	stage ('Build - Build') {
+ 			// Shell build step
+sh """
+cat index.html 
+ """
+	}
+	stage ('Test - Checkout') {
+ 	 checkout([$class: 'GitSCM', branches: [[name: '*/dev']], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '', url: 'https://github.com/cwmat/csci-91-final-phase1-public/']]]) 
+	}
+	stage ('Test - Build') {
+ 			// Shell build step
+sh """ 
+echo "Testing PAGE EXISTS"
+python tests/unittest_page_exist_dev.py 
+ """		// Shell build step
+sh """ 
+echo "Testing DATA IS AS EXPECTED"
+python tests/unittest_data_from_tag_dev.py 
+ """ 
+	}
+	stage ('Staging - Build') {
+ 			// Shell build step
+ 			build job: 'Staging'
+sh """ 
+echo "Committing to staging from dev." 
+ """ 
+	}
+	stage ('Test Staging - Build') {
+ 			// Shell build step
+sh """ 
+echo "Testing PAGE EXISTS"
+python tests/unittest_page_exist_staging.py 
+ """		// Shell build step
+sh """ 
+echo "Testing DATA IS AS EXPECTED"
+python tests/unittest_data_from_tag_staging.py 
+ """ 
+	}
+
+    stage ('remove dev - Build') {
+ 			// Shell build step
+            build job: 'remove dev'
+sh """ 
+echo "removing dev CFT stack"
+ """ 
+	}
+    stage ('remove stage - Build') {
+ 			// Shell build step
+            build job: 'remove stage'
+sh """ 
+echo "removing stagin CFT stack"
+ """ 
+	}
+	stage ('Git Master - Build') {
+ 			// Shell build step
+ 			build job: 'Git Master'
+sh """ 
+echo "Committing to master from staging." 
+ """ 
+	}
+
+}
+}
+}

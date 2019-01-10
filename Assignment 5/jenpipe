@@ -1,0 +1,28 @@
+pipeline {
+    agent any
+
+    triggers {
+         pollSCM('* * * * *')
+     }
+
+    stages{
+        stage('Deploying dev'){
+            steps {
+                sh '/bin/python ./test-dev.py'
+            }
+        }
+
+        stage ('Deploying stage') {
+            steps {
+                sh "/bin/python ./test-stage.py"
+            }
+        }
+
+        stage('Deploying  prod') {
+            steps {
+                sh "curl -s -I http://100.26.176.212/ | grep HTTP | grep 200"
+            }
+        }
+    }
+}
+

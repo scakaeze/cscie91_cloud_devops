@@ -1,0 +1,23 @@
+<html>
+<head>
+       <title>Cloud Ansible Demo</title>
+</head>
+<body>
+    <h3>
+        This is {{ ansible_system }} OS with {{ ansible_userspace_architecture }} architecture
+    </h3>
+    <p>
+        <strong>List of Databases:</strong> <br/>
+    <?php 
+
+    $result = mysql_query("SHOW DATABASES");
+    while ($res = mysql_fetch_assoc($result)){
+        echo $res['Database'] . "<br/>";
+    }
+
+    ?>
+    </p>
+    <br/>
+    <p><img src="cloud.png" alt="Cloud Logo"></p>
+</body>
+</html>

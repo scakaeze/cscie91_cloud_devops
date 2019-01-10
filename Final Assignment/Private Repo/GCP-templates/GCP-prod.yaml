@@ -1,0 +1,64 @@
+resources:
+- name: final-prod-server
+  type: compute.v1.instance
+  properties:
+    zone: us-west2-a
+    machineType: https://www.googleapis.com/compute/v1/projects/final-project-224917/zones/us-west2-a/machineTypes/f1-micro
+    metadata:
+     items:
+     - key: ssh-keys
+       value: |-
+         phase1:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC6iUaH51orMeOPlfTuFFUIHploXWIl3PwLuJNo1mETYwW1rWrnsuYEvYTCy4bN9183QDRxyGY09lXUJdupOPoVpS5uCoPLGFKmT0QMy6tR84lCvFgdLtdwTCZN7ZBiwM8iuTQj2EOp0/G88w80erFYnaXM8hKrSPv99y6B5hR85SDTgjC2252HaMk5lVRIHI+YglH5kSrTHW7z1AcgQLmaGC7wLbMl6ZvnMAc2bm5ACCnL0Ii4aK0E8LZ6J7ni8RbX0ZFFcb0OwKBoYd4Rjtcpvf8JBrUNSHego3T+H3yOxXqCg+FvtMBPjIbXu7VWduwoRY1T0tl1KRiOrz2JbVi7
+     - key: startup-script
+       value: |- 
+         #! /bin/bash
+         yu, update
+         yum install git
+         sudo apt install ansible -y
+         mkdir -p /root/.ssh
+         cat << EOF > /root/.ssh/id_rsa
+         -----BEGIN RSA PRIVATE KEY-----
+         MIIEpAIBAAKCAQEAuolGh+daKzHjj5X07hRVCB6ZaF1iJdz8C7iTaNZhE2MFta1q
+         57LmBL2EwsuGzfdfN0A0cchmNPZV1CXbqTj6FaUubgqDyxhSpk9EDMurUfOJQrxY
+         HS7XcEwmTe2QYsDPIrk0I9hDqdPxvPMPNHqxWJ2lzPISq0j7/fcugeYUfOUg04Iw
+         ttudh2jJOZVUSByPmIJR+ZEq0x1u89QHIEC5mhgu8C2zJemb5zAHNm5uQAgpy9CI
+         uGitBPC2eie54vEW19GRRXG9DsCgaGHeEY7XKb3/CQa1DUh3oKN0/h98jsV6goPh
+         b7TAT4yG17u1VnbsKEWNU9LZdSkYjq89iW1YuwIDAQABAoIBAQCH6Nkw0AnMiw7o
+         YTQR+1JxFgpkFhYazEYALD2LFxenznAsjOvlYV1iessuOqg/jUscsHUFqiN91zV1
+         2xeO1mqwNqf7mUGpSlF9xycnw4VRsoWB0ETLDoP92B3YjYyzxxOkkxhAPaQfKsNp
+         Dhc3/2UT0dkp1/5uOkEQK3cBQigPToopiyp0N/bCRensoyYAO2NE+xSMq2NFGCQK
+         cog5aIySQxjyJIWjkm6mC1vYqPh0YS7TnoVcpK+uyJRRqb8mw9TqhJrQ6ZBP0Gcm
+         NZ5KAGsaQbrwf6K/eQFknVOIHCk0A6A66uY+aWTxIbRdefKINK0JOc4zvDPDNY9h
+         DfLrZ1yBAoGBAPOT7Ta/9sjoFVNuocRuis8+6L7qtzYnS1kNFW8f9szqDIxJttKr
+         lbhBlOBahFm79Ksq/iOgK1YfGMM79Ak8iqDDdiWrWfX8b545Uf31iLz64CAmVK16
+         1fQdVDpOrhylTI/idhu3sUrK2qPZLyC8/uz4RBwfRrFrcZ6tbvMA3TvhAoGBAMQM
+         odUtxPq9WG8vTDOWApOJ5GjNS1X/MPwDmID4MGpym3MvjfavBIqdhXB1USZRm3Mb
+         oVsH3bbd/kb5SbhuipkLM+EXUa7wQgYl26S1cs/Z2qh/7WH6dP8oAOEJk/Vch/r2
+         oc0Wv7T7aTvQNGt/0GL2BkU5VpmiqpAi85qXWQgbAoGBAMfhmEPZe5aafQWeP7mG
+         TPqM0Un6KqaR0E8fYXtza3/0gJ+OzixLCe3OQ3FoVjuc9caQ3UQ259kgY52y0SvT
+         Np9+RrHaz1QA90eMGjChELij1tALJGnH51MPzlKaxl5Td2SLnghY0XBiztCuJPJk
+         pX2orZu2PrjRRsfD4swe5W2BAoGAVGNjndGvwoaSdHmVgXcG8N8gNIR58zB/s1sQ
+         4CL1JDzk8PX9U7wOZmRbtgapwabLFQdFs1t1cmuoMoDH3N2oRyxtTmytOnIs2Vye
+         aQ25uAJ8fp9iXRRkHBjqF/P5flowJjTXfOJX7t1xdM+wYL2Jw69HD7EYt9UvOg/x
+         cA/JwRUCgYAVtHd+WRKLaMF6AcUD/BJBwA/4r1Ye0USPdJYBrNBgm6SJgiMNenix
+         BAKRCVZ3/yGso8qHG3f37KUxpuzrXyGNQX5s3kpb3XNaY3DYrq3e1gJ/MYYVOQKW
+         qnB3+LLaJcQLr1KiF+QezfmnNaS/q9Pb4oKh+bbEmuHVhfgp6LBRPQ==
+         -----END RSA PRIVATE KEY-----
+         EOF
+         chmod 700 /root/.ssh
+         chmod 600 /root/.ssh/id_rsa
+         ssh-keyscan code.harvard.edu 2>&1  | grep rsa >> /root/.ssh/known_hosts
+         /bin/git clone git@code.harvard.edu:cwm850/csci-91-final-phase1-private.git /root/cscie91
+         
+    disks:
+    - deviceName: boot
+      type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        sourceImage: https://www.googleapis.com/compute/v1/projects/centos-cloud/global/images/centos-7-v20181210
+    networkInterfaces:
+    - network: https://www.googleapis.com/compute/v1/projects/final-project-224917/global/networks/default
+      accessConfigs:
+      - name: External NAT
+        type: ONE_TO_ONE_NAT

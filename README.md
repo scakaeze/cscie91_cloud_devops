@@ -1,1 +1,1 @@
-# cscie91_cloud_devops
+# Reference Repo for CSCI-E91

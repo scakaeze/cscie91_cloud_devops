@@ -1,0 +1,209 @@
+Description: 
+<<<<<<< HEAD:cloud-formation/0-deploy-vpc-subnet-sg-jenkins.yaml
+    Creates a VPC with one public subnet and a security group with 80, 443, 8080, and 22 open.
+    One EC2 instance for jenkins.
+=======
+    AWS Cloud Formation Template
+    Creates a VPC with one public subnet and a security group with 80, 443, and 22 open.
+    Three EC2 isntances - dev, staging, and jenkins.
+>>>>>>> 8d762a3b6bb56d4e2106467b26d865b10485592b:cloud-formation/0-deploy-dev-staging-jenkins.yaml
+
+Parameters:
+    
+    VpcCIDR:
+        Description: Please enter the IP range (CIDR notation) for this VPC
+        Type: String
+        Default: 10.0.0.0/16
+    
+    PublicSubnet1CIDR:
+        Description: Please enter the IP range (CIDR notation) for the first public subnet
+        Type: String 
+        Default: 10.0.0.0/17
+
+    UserName:
+        Type: String
+        Default: group1
+
+    SSHPublicKey:
+      Type: String
+      Default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC6iUaH51orMeOPlfTuFFUIHploXWIl3PwLuJNo1mETYwW1rWrnsuYEvYTCy4bN9183QDRxyGY09lXUJdupOPoVpS5uCoPLGFKmT0QMy6tR84lCvFgdLtdwTCZN7ZBiwM8iuTQj2EOp0/G88w80erFYnaXM8hKrSPv99y6B5hR85SDTgjC2252HaMk5lVRIHI+YglH5kSrTHW7z1AcgQLmaGC7wLbMl6ZvnMAc2bm5ACCnL0Ii4aK0E8LZ6J7ni8RbX0ZFFcb0OwKBoYd4Rjtcpvf8JBrUNSHego3T+H3yOxXqCg+FvtMBPjIbXu7VWduwoRY1T0tl1KRiOrz2JbVi7
+
+    AvailabilityZone1:
+        Description: AWS Availability Zones
+        Type: AWS::EC2::AvailabilityZone::Name
+        Default: us-east-1c
+    
+    SGPrefix:
+        Type: String
+        Description: Prefix to name the created security groups.
+        Default: csci91-phase1-group1-sg
+      
+    InstanceType:
+      Description: EC2 instance type
+      Type: String
+      Default: t2.micro
+      AllowedValues:
+        - t2.micro
+        - t2.small
+        - t2.medium
+      ConstraintDescription: must be a valid EC2 instance type.
+
+    AMI:
+      Description: AMI to create the EC2, you can use amazon ami
+      Type: String
+      Default: ami-058f0b6d904c90419
+
+Resources:
+    
+    VPC:
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: !Ref VpcCIDR
+            Tags:
+                - Key: Name
+                  Value: !Ref AWS::StackName
+    
+    InternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: !Sub ${AWS::StackName} IGW
+    
+    InternetGatewayAttachment:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            InternetGatewayId: !Ref InternetGateway
+            VpcId: !Ref VPC
+    
+    PublicSubnet1: 
+        Type: AWS::EC2::Subnet
+        DependsOn: VPC
+        Properties:
+            VpcId: !Ref VPC
+            AvailabilityZone: !Ref AvailabilityZone1
+            CidrBlock: !Ref PublicSubnet1CIDR
+            MapPublicIpOnLaunch: true
+            Tags: 
+                - Key: Name 
+                  Value: !Sub ${AWS::StackName} Public Subnet
+    
+    
+    NatGateway1EIP:
+        Type: AWS::EC2::EIP
+        DependsOn: InternetGatewayAttachment
+        Properties: 
+            Domain: vpc
+    
+    NatGW: 
+        Type: AWS::EC2::NatGateway
+        Properties: 
+            AllocationId: !GetAtt NatGateway1EIP.AllocationId
+            SubnetId: !Ref PublicSubnet1
+    
+    PublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties: 
+            VpcId: !Ref VPC
+            Tags: 
+                - Key: Name 
+                  Value: !Sub ${AWS::StackName} Public Routes
+    
+    DefaultPublicRoute: 
+        Type: AWS::EC2::Route
+        DependsOn: InternetGatewayAttachment
+        Properties: 
+            RouteTableId: !Ref PublicRouteTable
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref InternetGateway
+    
+    PublicSubnet1RouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PublicRouteTable
+            SubnetId: !Ref PublicSubnet1
+    
+    WEBINTERNET:
+        Type: 'AWS::EC2::SecurityGroup'
+        DependsOn: VPC
+        Properties:
+            GroupName: !Sub ${SGPrefix}
+            GroupDescription: Internet access to 80 and 443 and SSH on 22
+            VpcId: !Ref VPC
+            SecurityGroupIngress:
+                - IpProtocol: tcp
+                  FromPort: '80'
+                  ToPort: '80'
+                  CidrIp: 0.0.0.0/0
+                - IpProtocol: tcp
+                  FromPort: '443'
+                  ToPort: '443'
+                  CidrIp: 0.0.0.0/0
+                - IpProtocol: tcp
+                  FromPort: '22'
+                  ToPort: '22'
+                  CidrIp: 0.0.0.0/0
+                - IpProtocol: tcp
+                  FromPort: '8080'
+                  ToPort: '8080'
+                  CidrIp: 0.0.0.0/0
+  
+    EC2InstanceJenkins:
+      Type: 'AWS::EC2::Instance'
+      DependsOn: PublicSubnet1
+      Properties:
+        InstanceType: !Ref InstanceType
+        ImageId: !Ref AMI
+        SubnetId: !Ref PublicSubnet1
+        SecurityGroupIds: 
+          -
+            !GetAtt WEBINTERNET.GroupId
+        Tags:
+          - 
+            Key: Name
+            Value: 'Jenkins'
+        UserData:
+          Fn::Base64:
+            Fn::Sub:
+              - |
+                #!/bin/bash -xe
+                yum update -y
+                adduser ${USERNAME}
+                echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+                mkdir /home/${USERNAME}/.ssh
+                echo ${USERPUBLICSSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+                chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+                chmod 700 /home/${USERNAME}/.ssh
+                chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+                mkdir -p /root/.ssh
+                echo ${ANSIBLEPUBLICSSHKEY} > /root/.ssh/authorized_keys
+                chmod 600 /root/.ssh/authorized_keys
+                hostnamectl set-hostname ${SERVERNAME}.harvard.edu --pretty
+                hostnamectl set-hostname ${SERVERNAME}.harvard.edu --static
+                hostnamectl set-hostname ${SERVERNAME}.harvard.edu --transient
+              - USERNAME: !Ref UserName
+                USERPUBLICSSHKEY: !Ref SSHPublicKey
+                ANSIBLEPUBLICSSHKEY: !Ref SSHPublicKey
+                SERVERNAME: !Sub ${AWS::StackName}
+    
+
+Outputs:
+
+    VPC:
+      Value: !Ref VPC
+      Export:
+        Name: !Sub ${AWS::StackName}-VPC
+
+    PUBLIC1c:
+      Value: !Ref PublicSubnet1
+      Export:
+        Name: !Sub ${AWS::StackName}-PUBLIC-1
+
+    WEBINTERNET:
+      Value: !Ref WEBINTERNET
+      Export:
+        Name: !Sub ${AWS::StackName}-SG
+
+    InstanceIdJenkins:
+      Description: InstanceId of the Jenkins instance
+      Value: !Ref EC2InstanceJenkins

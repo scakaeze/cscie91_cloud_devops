@@ -1,0 +1,63 @@
+Description: >-
+  Deploys Launch Configuration for bootstrapped Linux instances
+
+Parameters:
+
+  UserName:
+    Type: String
+    Default: stakes
+
+  SSHPublicKey:
+    Type: String
+    Default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDNYU79UnTp45+15TSo87MYZxipa5CT84dT8NuuN7W5tdduKxPnrDtCztOYtzzbpYZrfBYPqnEy86T3KqqmLfYmz8adG8T/zqWz8U2EjZZNATRwCxTjUktkJ/DIFWYPVA6mZKqQkM5+7eNGhd+yg8uPq7iBokRrDDVzlgUlBO3qwGVE2frekUZ3Rtu+FEDIVL+VBQuLPOHVrYN8+6ikpwt8dsIfXaYParlHGDb46ZJgY4WHOKsjqjiOG27yacWqTsG2XZYwEtHWfpAxJ1QqsfssrKACUJC3oVav3RLGNvtNfVZ2hWZOSN8DO9knD4fp3otoVxNegTxuL25JNGa+B0/f sta283@g.harvard.edu
+
+  SecurityGroup:
+    Description: Select the Security Groups
+    Type: AWS::EC2::SecurityGroup::Id
+
+  AMI:
+    Description: AMI to create the EC2
+    Type: String
+    Default: ami-0ff8a91507f77f867
+
+Resources:
+  LaunchConfig:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      #AssociatePublicIpAddress: False
+      #KeyName: FarasKey
+      LaunchConfigurationName : !Ref AWS::StackName
+      ImageId: !Ref AMI
+      SecurityGroups:
+        - !Ref SecurityGroup
+      InstanceType: t2.micro
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              sudo yum update -y
+              sudo yum install httpd -y
+              sudo chmod  o+w /var/www/html
+              echo "Assignment 4: Public Web Server" > /var/www/html/index.html
+              local_ipv4=$(ifconfig | grep "inet addr" | awk -F: '{print $2}' | awk '{print $1}')
+              echo My Local IP is $local_ipv4 >> /var/www/html/index.html
+              sudo service httpd start
+              hostnamectl set-hostname  mystack1.harvard.edu --pretty
+              hostnamectl set-hostname  mystack1.harvard.edu --static
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --transient
+            - USERNAME: !Ref UserName
+              SSHKEY: !Ref SSHPublicKey
+              SERVERNAME: ec2-test
+
+Outputs:
+
+  LG:
+    Value: !Ref LaunchConfig

@@ -1,0 +1,9 @@
+---
+# run with ansible-playbook -i /path/to/hosts/file -u USERNAME main.yml
+#- hosts: Mygroup
+- hosts: all
+  become: yes
+  become_user: root
+  roles:
+     - common
+     - webserver

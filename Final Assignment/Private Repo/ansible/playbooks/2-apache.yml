@@ -1,0 +1,9 @@
+---
+- hosts: all
+  become: yes
+  become_user: root
+  tasks:
+    - name: install apache
+      yum: name=httpd state=present
+    - name: ensure apache is started
+      service: name=httpd state=started enabled=yes
