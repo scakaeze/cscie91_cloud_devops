@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >-
+  Create an Amazon EC2, all parameters are optional but AMI abd security groups , subnet as parameter
+  Just added the VPC to the security group to make 4_0-ec2-all-default-but-ami-sg-subnet-ROLLBACK.yam template succeed. 
+
+Parameters:
+  MySelectedSubnet:
+    Description: Subnet to host the EC2
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'AWS::EC2::Subnet::Id'
+    ConstraintDescription: subnet where this machine reside
+
+  vpcid:
+    Description: VPC of the launcher and its security group
+    Type: 'AWS::EC2::VPC::Id'
+    ConstraintDescription: must be a VPC  where the SG and the launcher reside
+
+Resources:
+
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0922553b7b0369273
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref NetworkInterface
+          DeviceIndex: '0'
+
+  NetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    DependsOn: SSHANDWEB
+    Properties:
+      SubnetId: !Ref MySelectedSubnet
+      GroupSet:
+        - !Ref SSHANDWEB
+
+  SSHANDWEB:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: 4_2-ec2-all-default-but-ami-sg-subnet
+      VpcId: !Ref vpcid 
+      GroupDescription: port 22 (for ssh), port 80 and port 443 are open to the internet
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+

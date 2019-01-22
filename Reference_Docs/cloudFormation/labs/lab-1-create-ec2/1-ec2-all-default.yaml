@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Create an Amazon EC2, all parameters are optional. The stack should fail.
+
+Resources:
+
+  #EC2Instance is a logical name
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'

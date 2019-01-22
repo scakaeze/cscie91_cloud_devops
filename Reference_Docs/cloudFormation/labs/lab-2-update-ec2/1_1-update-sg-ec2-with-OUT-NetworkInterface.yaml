@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >-
+  Update the security group. 
+  The EC2 stay the same, no replacement for the EC2
+
+Parameters:
+
+  MySelectedSubnet:
+    Description: Subnet to host the EC2
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'AWS::EC2::Subnet::Id'
+    ConstraintDescription: subnet where this machine reside
+
+  vpcid:
+    Description: VPC of the launcher and its security group
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'AWS::EC2::VPC::Id'
+    ConstraintDescription: must be a VPC  where the SG and the launcher reside
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    ConstraintDescription: must be a valid EC2 instance type.
+
+  AMI:
+    Description: AMI to create the EC2
+    Type: String
+    Default: ami-0922553b7b0369273
+
+  MyKey:
+    Description: SSH Key Name
+    Type: String
+
+Resources:
+
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref MyKey
+      SubnetId: !Ref MySelectedSubnet
+      SecurityGroupIds: 
+        - !Ref SSHANDWEB
+
+
+  SSHANDWEB:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: 0-ec2-with-OUT-NetworkInterface
+      VpcId: !Ref vpcid 
+      GroupDescription: port 22 (for ssh), port 80 and port 443 are open to the internet
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          # First update (to apply): Replace 140.247.0.0/16 With 0.0.0.0/0 so port 22 will be open from the internet
+          CidrIp: 0.0.0.0/0
+

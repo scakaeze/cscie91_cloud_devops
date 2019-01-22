@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >-
+  Create EC2 instance, all parameters are optional but the AMI, security groups and the subnet. Subnet as a parameter
+  Return Error,  the parameter groupName cannot be used with the parameter subnet
+
+Parameters:
+  MySelectedSubnet:
+    Description: Subnet to host the EC2
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'AWS::EC2::Subnet::Id'
+    ConstraintDescription: subnet where this machine reside
+    
+Resources:
+
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0922553b7b0369273
+      SubnetId: !Ref MySelectedSubnet
+      SecurityGroupIds: 
+        - !Ref SSHANDWEB
+
+  SSHANDWEB:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: 4_0-ec2-all-default-but-ami-sg-subnet
+      GroupDescription: port 22 (for ssh), port 80 and port 443 are open to the internet
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+

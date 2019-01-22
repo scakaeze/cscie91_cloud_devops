@@ -1,0 +1,12 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >-
+  Create an Amazon EC2, all parameters are optional but the AMI
+
+Resources:
+
+  #EC2Instance is a logical name
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: ami-0922553b7b0369273

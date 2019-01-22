@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >-
+  Create an Amazon EC2 with multiple input parameters.
+
+Parameters:
+
+  UserName:
+    Type: String
+    Default: YOUR USERNAME (ex john, indir, kjohn , etc)
+
+  SSHPublicKey:
+    Type: String
+    Default: INSERT YOUR PUBLIC SSH KEY HER (start ssh-rsa AAA....)
+
+  MySelectedSubnet:
+    Description: Subnet to host the EC2
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'AWS::EC2::Subnet::Id'
+    ConstraintDescription: subnet where this machine reside
+
+  vpcid:
+    Description: VPC of the launcher and its security group
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'AWS::EC2::VPC::Id'
+    ConstraintDescription: must be a VPC  where the SG and the launcher reside
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    ConstraintDescription: must be a valid EC2 instance type.
+
+  AMI:
+    Description: AMI to create the EC2, you can use amazon ami
+    Type: String
+    Default: ami-0922553b7b0369273
+
+Resources:
+
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref NetworkInterface
+          DeviceIndex: '0'
+      Tags:
+        - 
+          Key: Name
+          Value: 'My EC2'
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              hostnamectl set-hostname  mystack1.harvard.edu --pretty
+              hostnamectl set-hostname  mystack1.harvard.edu --static
+            - USERNAME: !Ref UserName
+              SSHKEY: !Ref SSHPublicKey
+              
+  NetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    DependsOn: SSHANDWEB
+    Properties:
+      SubnetId: !Ref MySelectedSubnet
+      GroupSet:
+        - !Ref SSHANDWEB
+
+  SSHANDWEB:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: 6-ec2-all-default-but-ami-sg-type-subnet-userEnvVarsInUserdata-and-output
+      VpcId: !Ref vpcid 
+      GroupDescription: port 22 (for ssh), port 80 and port 443 are open to the internet
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+
+
+Outputs:
+  InstanceId:
+    Description: InstanceId of the newly created EC2 instance
+    Value: !Ref EC2Instance
+  privateIP:
+    Value: !GetAtt NetworkInterface.PrimaryPrivateIpAddress
+
+

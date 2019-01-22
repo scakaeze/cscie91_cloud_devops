@@ -1,0 +1,19 @@
+body {
+    background-color: #f8f9f9;
+}
+
+h2 {
+    color: navy;
+    margin-left: 20px;
+}
+
+.center {
+    text-align: center;
+}
+
+div.signing{
+    position: absolute;
+    right:    10;
+    bottom:   10; 
+}
+

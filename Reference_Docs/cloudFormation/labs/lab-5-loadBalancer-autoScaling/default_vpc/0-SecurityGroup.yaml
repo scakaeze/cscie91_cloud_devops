@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation Template for the  VPC Security Groups
+
+Parameters:
+
+    VPC:
+        Type: AWS::EC2::VPC::Id
+        Description: Choose which VPC the Security Groups will be created.
+
+Resources:
+  LBWEBTOINTERNET:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub ${AWS::StackName}_WEB_TO_INTERNET
+      GroupDescription: Internet access to 80 and 443
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+  EC2WEBTOLB:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub ${AWS::StackName}_WEB_TO_LOADBALANCER
+      GroupDescription: Internet access to 80 and 443
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 172.31.0.0/16
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 172.31.0.0/16
+Outputs:
+  LBWEBTOINTERNET:
+    Value: !Ref LBWEBTOINTERNET
+  EC2WEBTOLB:
+    Value: !Ref EC2WEBTOLB
+

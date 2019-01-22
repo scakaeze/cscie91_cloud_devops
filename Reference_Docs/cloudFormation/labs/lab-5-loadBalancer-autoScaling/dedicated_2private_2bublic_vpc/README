@@ -1,0 +1,90 @@
+Create Stacks sequentially. Leave default parameters like the CIDR and AMI in those stacks. 
+
+step 1) 
+   0-vpc_2-public-and-2-private-NAT-and-SG.yaml
+      
+      Input: 
+          StackName
+          AZ1
+          AZ2
+      
+      Output:
+          VPC
+          PUBLIC1     <- public subnet 1 in AZ1
+          PUBLIC2     <- public subnet 2 in AZ2
+          PRIVATE1    <- private subnet 1 in AZ1
+          PRIVATE2    <- private subnet 2 in AZ2
+          SG          <- security group id
+
+
+Step 2) 
+  1-launch-configuration.yaml
+     
+      Input: 
+          StackName
+          SecurityGroup         <- security group (SG) id created in step 1
+     
+      Output:
+          Lauch configuration name , which is equal to the stackName,
+          for example, if you name the stack "launch-config" then the output is "launch-config".
+          You need this output for the Auto scaling stack in step 5
+       
+
+
+Step 3) 
+   2-target-groups.yaml
+      
+      Input: 
+          StackName
+          VPC                      <- VPC id create in Step 1
+         
+      Output:
+          arn:aws:elasticlo......  <- ARN (Amazon Resource Name) , 
+                                              You need this long ARN name in two places: 
+                                                 1) load balancer in step 4
+                                                 2) autoscaling in step 5.
+
+Step 4) 
+   3-load-balancer.yaml
+     
+      Input: 
+          StackName
+          SecurityGroup   <- security group id created in step 1
+          ARNTargetGroup  <- Created in step 3
+          Subnets         <- select the 2 PUBLIC subnets created in step 1
+          VPC             <- Select the VPC created in step 1
+      
+      Output:
+          LoadBalancerUrl <- This is What you want to check at the end (after step 5)
+
+
+Step 5) 
+  4-auto-scaling.yaml
+     
+     Input: 
+        StackName
+        ARNTargetGroup     <- Output of step 3
+        LaunchConfigName   <- Output of step 2
+        Subnets            <- select the 2 PRIVATE subnets created in step 1
+     
+     Output:
+
+
+Step 6) 
+  Browse LoadBalancerUrl , you should get ec2-test
+  OR form a local machine or any public EC2 do 
+     $> curl LoadBalancerUrl
+     $> for i in `seq 100` do curl LoadBalancerUrl ; done
+
+  
+      
+
+
+
+To remove your stacks , remove in reverse order 
+
+4-auto-scaling.yaml
+3-load-balancer.yaml
+2-target-groups.yaml
+1-launch-configuration.yaml
+0-vpc_2-public-and-2-private-NAT-and-SG.yaml

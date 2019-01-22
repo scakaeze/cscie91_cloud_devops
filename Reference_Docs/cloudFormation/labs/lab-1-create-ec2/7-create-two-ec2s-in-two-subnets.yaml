@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: >-
+  Create two EC2s  with multiple input parameters in two different subnets.
+
+Parameters:
+
+  UserName:
+    Type: String
+    Default: YOUR USERNAME (ex john, indir, kjohn , etc)
+
+  SSHPublicKey:
+    Type: String
+    Default: INSERT YOUR PUBLIC SSH KEY HER (start ssh-rsa AAA....)
+
+  SecurityGroup:
+    Description: Name of security group
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+
+  Subnet1:
+    Description: Subnet to host the first EC2
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'AWS::EC2::Subnet::Id'
+    ConstraintDescription: subnet where this machine reside
+
+  Subnet2:
+    Description: Subnet to host the second EC2
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'AWS::EC2::Subnet::Id'
+    ConstraintDescription: subnet where this machine reside
+
+  vpcid:
+    Description: VPC of the launcher and its security group
+    # Check parameters type : go to https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/parameters-section-structure.html 
+    Type: 'AWS::EC2::VPC::Id'
+    ConstraintDescription: must be a VPC  where the SG and the launcher reside
+
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    ConstraintDescription: must be a valid EC2 instance type.
+
+  AMI:
+    Description: AMI to create the EC2, you can use amazon ami
+    Type: String
+    Default: ami-0922553b7b0369273
+
+Resources:
+
+  EC2Instance1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref Subnet1
+      SecurityGroupIds: !Ref SecurityGroup    #<- Need to be input parameter ???
+      Tags:
+        - 
+          Key: Name
+          Value: 'My First EC2'
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              hostnamectl set-hostname  ec2_1.harvard.edu --pretty
+              hostnamectl set-hostname  ec2_1.harvard.edu --static
+            - USERNAME: !Ref UserName
+              SSHKEY: !Ref SSHPublicKey
+              
+
+  EC2Instance2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      ImageId: !Ref AMI
+      InstanceType: !Ref InstanceType
+      SubnetId: !Ref Subnet2
+      SecurityGroupIds: !Ref SecurityGroup    #<- Need to be input parameter ???
+      Tags:
+        - 
+          Key: Name
+          Value: 'My Second EC2'
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              hostnamectl set-hostname  ec2_2.harvard.edu --pretty
+              hostnamectl set-hostname  ec2_2.harvard.edu --static
+            - USERNAME: !Ref UserName
+              SSHKEY: !Ref SSHPublicKey
+
+
+Outputs:
+  InstanceId1:
+    Description: InstanceId of the first instance
+    Value: !Ref EC2Instance1
+  InstanceId2:
+    Description: InstanceId of the second instance
+    Value: !Ref EC2Instance2

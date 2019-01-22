@@ -1,0 +1,80 @@
+Create Stacks sequentially. Leave default parameters like the CIDR and AMI in those stacks. 
+
+Step 1) 
+  0-SecurityGroup.yaml
+     Input: 
+         StackName
+         VPC         <- pick the default VPC
+     Output:
+         EC2WEBTOLB          <- Open ports 80 and 443 to the vpc where the load balancer created (to be used by the launch-configuration stack in Step 2)
+         LBWEBTOINTERNET     <- Open ports 80 and 443 to the internet ( to be used by the load balancer creation in Step 4 )
+
+
+Step 2) 
+  1-launch-configuration.yaml
+
+     Input: 
+         StackName
+         SecurityGroup         <- EC2WEBTOLB security group (SG) id created in Step 1
+
+     Output:
+         Lauch configuration name , which is equal to the stackName,
+         for example, if you name the stack "launch-config" then the output is "launch-config".
+         You need this output for the Auto scaling stack in Step 5
+       
+
+
+Step 3) 
+   2-target-groups.yaml
+
+      Input: 
+          StackName
+          VPC                      <- VPC id create in Step 1
+         
+      Output:
+          arn:aws:elasticlo......  <- ARN (Amazon Resource Name) , 
+                                              You need this long ARN name in two places: 
+                                                 1) load balancer in Step 4
+                                                 2) autoscaling in Step 5.
+
+Step 4) 
+   3-load-balancer.yaml
+      
+      Input: 
+          StackName
+          SecurityGroup   <- LBWEBTOINTERNET security group id created in Step 1
+          ARNTargetGroup  <- Created in Step 3
+          Subnets         <- select the 2 Subnets 
+          VPC             <- Select the default VPC
+      
+      Output:
+          LoadBalancerUrl <- This is What you want to check at the end (after Step 5)
+
+
+Step 5) 
+   4-auto-scaling.yaml
+      
+      Input: 
+          StackName
+          ARNTargetGroup     <- Output of Step 3
+          LaunchConfigName   <- Output of Step 2
+          Subnets            <- select the the same 2 subnets you selected in Step 4
+                              What will happen if you select different subnets than the ones you selected in Step 4?
+      Output:
+
+
+Step 6) 
+  Browse LoadBalancerUrl
+  OR
+  curl LoadBalancerUrl
+      
+
+
+
+To remove your stacks , remove in reverse order 
+
+4-auto-scaling.yaml
+3-load-balancer.yaml
+2-target-groups.yaml
+1-launch-configuration.yaml
+0-SecurityGroup.yaml

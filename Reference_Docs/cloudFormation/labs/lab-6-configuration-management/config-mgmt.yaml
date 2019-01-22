@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation Template EC2InstanceWithSecurityGroup: Create an Amazon EC2
+  instance running SEAS CentOS AMI on the us-east region. This template creates an EC2
+  instance that uses an already created security groups. It also uses user-data to configure 
+  the instance as ansible server.
+Parameters:
+  UserName:
+    Type: String
+    Default: fadel
+  SSHPublicKey:
+    Type: String
+    Default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7a98xqol/emQKxyK4d317fpZQLM5aiRKXAqZVZ7W9F3yHqVeJ+w8tRW4h0vxxvqMAzD62Pef7aDWwwpmcJaxpvudL2zwuopDEdQZ/OLqxZpQQtnLVcOQmyj1rdRhg6Q37P5y68TNj0rtM4XtblnmUiMVa2ANFPXCmBUIXji1/SQZDCfz1VBHF1btpTcHQiQyWwRiIZH1nuEayI+FnK1bvvgNAMZFoS/b1Z1LXvtPvfGFKwZe7aLIKuc2qzkZ5W+yVU8SW2hrbRCHuCMwN+N8ajx+keBAZlMOY9ZQRLycJVjqvSC4kfmvGiYM0YECX2M1SrbOC2/7vpHGBzUbBFkLF
+  ServerName:
+    Type: String
+    Default: 'config-mgmt' 
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t2.micro
+      - t2.small
+      - t2.medium
+    ConstraintDescription: must be a valid EC2 instance type.
+  AMI:
+    Description: AMI to create the EC2
+    Type: String
+    Default: ami-0922553b7b0369273
+  Subnet:
+    Description: Subnet to host the EC2
+    Type: 'AWS::EC2::Subnet::Id'
+    ConstraintDescription: subnet where this machine reside
+  Expiration:
+    Description: Time to terminate or re-evaluate the machine 
+    Type: String
+    Default: 'Jan 1st 2020'
+  SecurityGroup:
+    Description: Name of security group
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+Resources:
+  NetworkInterface:
+    Type: 'AWS::EC2::NetworkInterface'
+    Properties:
+      SubnetId: !Ref Subnet
+      GroupSet: !Ref SecurityGroup
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref InstanceType
+      NetworkInterfaces:
+        - NetworkInterfaceId: !Ref NetworkInterface
+          DeviceIndex: '0'
+      ImageId: !Ref AMI
+      Tags:
+        - 
+          Key: Name
+          Value: !Sub ${AWS::StackName}
+        - 
+          Key: OS
+          Value: !Ref Expiration 
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              yum update -y
+              yum install -y git
+              yum install -y ansible
+              yum install -y puppet-server
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --pretty
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --static
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --transient
+              mkdir -p /root/.ssh
+              cat > /root/.ssh/id_rsa << EOF
+              -----BEGIN RSA PRIVATE KEY-----
+              MIIEowIBAAKCAQEAoMea3Sq6GMUGSSKoiCAAAAAAAAAAAAAAAAAAAAAAAAAAAAay
+              AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaqHN
+              -----END RSA PRIVATE KEY-----
+              EOF
+              chmod 700 /root/.ssh
+              chmod 600 /root/.ssh/id_rsa
+              ssh-keyscan code.harvard.edu 2>&1  | grep rsa >> /root/.ssh/known_hosts
+              rm -fr /root/cscie91
+              /bin/git clone git@code.harvard.edu:fas799/cscie91.git /root/cscie91
+              /bin/rm -fr /etc/ansible/*
+              /bin/cp -r /root/cscie91/ansible/* /etc/ansible/
+              #ansible-playbook /etc/ansible/jenkins.yml 
+            - USERNAME: !Ref UserName
+              SSHKEY: !Ref SSHPublicKey
+              SERVERNAME: !Ref ServerName
+              
+Outputs:
+  InstanceId:
+    Description: InstanceId of the newly created EC2 instance
+    Value: !Ref EC2Instance
+  privateIP:
+    Value: !GetAtt NetworkInterface.PrimaryPrivateIpAddress
+

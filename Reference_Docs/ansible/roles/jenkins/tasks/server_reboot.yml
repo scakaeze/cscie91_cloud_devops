@@ -1,0 +1,11 @@
+---
+# Calls for server reboot, then waits for it to come online
+
+# Tell system to reboot in one minute (immediate reboot will cause the playbook
+# to fail)
+- name: reboot server
+  shell: /sbin/shutdown -r +1
+  async: 0
+  poll: 0
+  ignore_errors: True
+

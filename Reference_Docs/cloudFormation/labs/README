@@ -1,0 +1,15 @@
+# CloudFormation Templates
+
+1) Read the templates 
+2) Execute the labs templates sequentially 
+3) Delete your stacks after each exercise
+
+
+Read: 
+https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-ec2-instance.html
+
+
+AWSCLI - CloudFormation 
+
+aws cloudformation create-stack --stack-name myteststack --template-body file:///home/testuser/mytemplate.json --parameters ParameterKey=Parm1,ParameterValue=test1 ParameterKey=Parm2,ParameterValue=test2
+

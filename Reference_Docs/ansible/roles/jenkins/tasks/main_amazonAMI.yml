@@ -1,0 +1,103 @@
+---
+#
+# Prepares the server by installing necessary packages and enabling the Jenkins
+#
+
+- name: add jenkins repo
+  yum_repository:
+    name: Jenkins
+    description: Repository for Jenkins installation
+    baseurl: http://pkg.jenkins-ci.org/redhat
+    gpgkey: http://pkg.jenkins-ci.org/redhat/jenkins-ci.org.key
+
+# Update all packages on system
+- name: yum update
+  yum:
+    name: "*"
+    state: latest
+  register: yum_result
+  retries: 5
+  delay: 20
+  until: >
+     'rc' in yum_result and
+     yum_result.rc == 0
+
+# Reboot if any updates are installed.
+- include_tasks: server_reboot.yml
+  when: yum_result.changed
+
+
+# ensure that needed utilities are installed
+- name: install utilities
+  yum:
+    name:
+      - curl
+      - git
+      - python-pip
+      - python-virtualenv
+      - vim
+    state: present
+    update_cache: true
+
+# Get the correct version of Java
+- name: install java
+  yum:
+    name: java-1.8.0-openjdk
+    state: present
+
+# Install Jenkins
+- name: install jenkins
+  yum:
+    name: jenkins
+    state: latest
+
+# make sure that the jenkins home directory exists
+- name: create jenkins_home
+  file:
+    path: "{{jenkins_home}}"
+    state: directory
+    owner: jenkins
+    group: jenkins
+    mode: 0755
+
+- name: copy certificate key
+  copy:
+    src: jenkins.key
+    dest: /etc/pki/tls/private/
+    owner: root
+    group: root
+    mode: 0444
+
+
+- name: copy certificate 
+  copy:
+    src: jenkins.cert
+    dest: /etc/pki/tls/certs/
+    owner: root
+    group: root
+    mode: 0444
+
+# System-level setting for jenkins
+- name: copy jenkins config
+  template:
+    src: "jenkins_config.j2"
+    dest: "/etc/sysconfig/jenkins"
+    owner: root
+    group: root
+    mode: 0600
+  register: jenkins_config_file
+
+# start and enable Jenkins
+- name: start jenkins service
+  service:
+    name: jenkins
+    state: started
+    enabled: yes
+  register: jenkins_started
+
+# Restart the jenkins service if the config changes while it's already running
+- name: restart jenkins
+  service:
+    name: jenkins
+    state: restarted
+  when: jenkins_config_file.changed and not jenkins_started.changed

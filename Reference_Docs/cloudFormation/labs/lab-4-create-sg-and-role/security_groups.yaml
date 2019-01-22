@@ -1,0 +1,65 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation Template for the  VPC Security Groups
+
+Parameters:
+
+    VPC:
+        Type: AWS::EC2::VPC::Id
+        Description: Choose which VPC the Security Groups will be created.
+
+    SGPrefix:
+        Type: String
+        Description: Prefix to name the created security groups.
+
+Resources:
+  WEBINTERNET:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub ${SGPrefix}_WEB_INTERNET
+      GroupDescription: Internet access to 80 and 443
+      VpcId: !Ref VPC
+#      VpcId: !ImportValue
+#        'Fn::Sub': E91VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
+  SSHTOHARVARD:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupName: !Sub ${SGPrefix}_SSH_HARVARD
+      GroupDescription: SSH access to harvard networks
+      VpcId: !Ref VPC
+#      VpcId: !ImportValue
+#        'Fn::Sub': E91VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 10.0.0.0/8
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 140.247.0.0/16
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 10.1.178.0/24
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 10.11.246.0/24
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 128.103.224.0/24
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 128.103.24.0/24
+

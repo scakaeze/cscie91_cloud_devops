@@ -1,0 +1,109 @@
+Description: >-
+  Deploys Launch Configuration
+
+Metadata: 
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "Admin User"
+        Parameters: 
+          - ADMINUserName
+          - ADMINPublicKey
+      - 
+        Label:
+          default: "EC2 Configuration"
+        Parameters:
+          - SecurityGroup
+          - AMI
+          - ServerName
+    
+    ParameterLabels:
+      ADMINUserName:
+        default: "Admin User Name"
+      ADMINPublicKey:
+        default: "Admin Public Key"
+      AMI:
+        default: "OS Image"
+      EC2Type:
+        default: "Instance Type"
+      SecurityGroup:
+        default: "Security groups"
+      ServerName:
+        default: "Local Hostname?"
+
+
+Parameters: 
+
+  ADMINUserName:
+    Type: String
+    Default: fadel
+
+  ADMINPublicKey:
+    Description: default to seas_computing new key
+    Type: String
+    Default: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7a98xqol/emQKxyK4d317fpZQLM5aiRKXAqZVZ7W9F3yHqVeJ+w8tRW4h0vxxvqMAzD62Pef7aDWwwpmcJaxpvudL2zwuopDEdQZ/OLqxZpQQtnLVcOQmyj1rdRhg6Q37P5y68TNj0rtM4XtblnmUiMVa2ANFPXCmBUIXji1/SQZDCfz1VBHF1btpTcHQiQyWwRiIZH1nuEayI+FnK1bvvgNAMZFoS/b1Z1LXvtPvfGFKwZe7aLIKuc2qzkZ5W+yVU8SW2hrbRCHuCMwN+N8ajx+keBAZlMOY9ZQRLycJVjqvSC4kfmvGiYM0YECX2M1SrbOC2/7vpHGBzUbBFkLF
+
+  SecurityGroup:
+    Description: Select the Security Groups
+    Type: AWS::EC2::SecurityGroup::Id
+
+  AMI:
+    Description: Select AMI
+    Type: String 
+    Default: ami-0922553b7b0369273 
+
+  ServerName:
+    Description: Local Server Name
+    Type: String 
+    Default: 'web-server' 
+
+  EC2Type:
+    Description: Instance type
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+    ConstraintDescription: must be a valid EC2 instance type.
+
+Resources:
+  LaunchConfig:
+    Type: 'AWS::AutoScaling::LaunchConfiguration'
+    Properties:
+      LaunchConfigurationName : !Ref AWS::StackName
+      ImageId: !Ref AMI
+      SecurityGroups: 
+        - !Ref SecurityGroup
+      InstanceType: !Ref EC2Type
+      UserData:
+        Fn::Base64:
+          Fn::Sub:
+            - |
+              #!/bin/bash -xe
+              yum install httpd -y
+              echo "EC2 : " > /var/www/html/index.html
+              /usr/bin/curl -s http://169.254.169.254/latest/meta-data/local-ipv4 >> /var/www/html/index.html
+              systemctl start httpd
+              systemctl enable httpd
+              adduser ${USERNAME}
+              echo ${USERNAME} 'ALL=(ALL) NOPASSWD:ALL'>>/etc/sudoers.d/${USERNAME}
+              mkdir /home/${USERNAME}/.ssh
+              echo ${SSHKEY} > /home/${USERNAME}/.ssh/authorized_keys
+              chown -R ${USERNAME}.${USERNAME} /home/${USERNAME}/.ssh
+              chmod 700 /home/${USERNAME}/.ssh
+              chmod 600 /home/${USERNAME}/.ssh/authorized_keys
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --pretty
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --static
+              hostnamectl set-hostname ${SERVERNAME}.harvard.edu --transient
+              yum update -y
+            - USERNAME: !Ref ADMINUserName
+              SSHKEY: !Ref ADMINPublicKey
+              SERVERNAME: !Ref ServerName
+
+Outputs:
+
+  LG:
+    Value: !Ref LaunchConfig
+
+

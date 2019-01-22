@@ -1,0 +1,13 @@
+import json
+import boto3
+
+def lambda_handler(event, context):
+    ec2resource = boto3.resource('ec2')
+    ec2client  = boto3.client('ec2')
+    volumes = ec2resource.volumes.all()
+    for vol in volumes:
+        print("BEGIN : snapshot volume with ID: " + vol.id)
+        ec2client.create_snapshot(VolumeId=vol.id, Description="e91")
+        print("END : snapshot volume with ID: " + vol.id)
+
+    return
